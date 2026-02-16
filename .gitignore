@@ -1,0 +1,47 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go build cache
+*.out
+
+# IDE
+.idea/
+.vscode/
+
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code generated config (machine-specific paths)
+.claude/settings.json
+.claude/.mcp.json
+
+# Spec session plans (ephemeral)
+docs/plans/
+
+# Git worktree isolation
+.worktrees/
+
+# Web viewer build output (embedded at compile time)
+assets/viewer/*.js
+assets/viewer/*.css
+web/node_modules/
+web/dist/
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
