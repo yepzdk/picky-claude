@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-
-	"github.com/jesperpedersen/picky-claude/internal/config"
 )
 
 func init() {
@@ -35,12 +33,9 @@ type taskUpdateInput struct {
 // taskTrackerHook intercepts TaskCreate, TaskUpdate, and TodoWrite calls
 // to maintain a running task count in the session directory.
 func taskTrackerHook(input *Input) error {
-	sessionID := input.SessionID
-	if sessionID == "" {
-		sessionID = "default"
-	}
+	sessionDir := resolveSessionDir()
 
-	summary := loadTaskSummary(sessionID)
+	summary := loadTaskSummary(sessionDir)
 
 	switch input.ToolName {
 	case "TodoWrite":
@@ -61,7 +56,7 @@ func taskTrackerHook(input *Input) error {
 		}
 	}
 
-	saveTaskSummary(sessionID, &summary)
+	saveTaskSummary(sessionDir, &summary)
 	ExitOK()
 	return nil
 }
@@ -88,12 +83,12 @@ func countFromTodoWrite(raw json.RawMessage) taskSummary {
 	return s
 }
 
-func tasksFile(sessionID string) string {
-	return filepath.Join(config.SessionDir(sessionID), "tasks.json")
+func tasksFile(sessionDir string) string {
+	return filepath.Join(sessionDir, "tasks.json")
 }
 
-func loadTaskSummary(sessionID string) taskSummary {
-	data, err := os.ReadFile(tasksFile(sessionID))
+func loadTaskSummary(sessionDir string) taskSummary {
+	data, err := os.ReadFile(tasksFile(sessionDir))
 	if err != nil {
 		return taskSummary{}
 	}
@@ -102,9 +97,8 @@ func loadTaskSummary(sessionID string) taskSummary {
 	return s
 }
 
-func saveTaskSummary(sessionID string, s *taskSummary) {
-	dir := config.SessionDir(sessionID)
-	os.MkdirAll(dir, 0o755) //nolint:errcheck
+func saveTaskSummary(sessionDir string, s *taskSummary) {
+	os.MkdirAll(sessionDir, 0o755) //nolint:errcheck
 	data, _ := json.Marshal(s)
-	os.WriteFile(tasksFile(sessionID), data, 0o644) //nolint:errcheck
+	os.WriteFile(tasksFile(sessionDir), data, 0o644) //nolint:errcheck
 }
