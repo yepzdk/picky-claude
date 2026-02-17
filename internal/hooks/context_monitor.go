@@ -1,10 +1,13 @@
 package hooks
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 
 	"github.com/jesperpedersen/picky-claude/internal/session"
 )
@@ -13,17 +16,14 @@ func init() {
 	Register("context-monitor", contextMonitorHook)
 }
 
-// contextWindowTokens is the assumed context window size for percentage calculation.
-const contextWindowTokens = 200_000
-
-// contextMonitorHook estimates context usage from the transcript file, persists
-// the percentage, and emits escalating warnings at configured thresholds.
-// Tracks which thresholds have already been shown per session to avoid duplicates.
+// contextMonitorHook parses context usage from Claude Code's system reminders
+// in the transcript, persists the percentage, and emits escalating warnings at
+// configured thresholds. Tracks which thresholds have been shown per session.
 func contextMonitorHook(input *Input) error {
 	sessionDir := resolveSessionDir()
 
-	// Estimate context usage from transcript and persist it
-	pct := estimateContextFromTranscript(input.TranscriptPath)
+	// Parse context usage from Claude Code's system reminders in the transcript
+	pct := parseContextFromTranscript(input.TranscriptPath)
 	if pct > 0 {
 		session.WriteContextPercentage(sessionDir, pct)
 	}
@@ -59,25 +59,39 @@ func contextMonitorHook(input *Input) error {
 	return nil
 }
 
-// estimateContextFromTranscript estimates the context usage percentage by
-// reading the transcript file size and using a chars-to-tokens heuristic.
-func estimateContextFromTranscript(transcriptPath string) float64 {
+// contextPctRe matches "Context at NN%." in system-reminder tags.
+var contextPctRe = regexp.MustCompile(`Context at (\d+)%`)
+
+// parseContextFromTranscript scans the transcript JSONL for the last
+// system-reminder containing "Context at NN%" and returns that value.
+// Falls back to 0 if no context reminder is found.
+func parseContextFromTranscript(transcriptPath string) float64 {
 	if transcriptPath == "" {
 		return 0
 	}
-	info, err := os.Stat(transcriptPath)
+	f, err := os.Open(transcriptPath)
 	if err != nil {
 		return 0
 	}
-	// Estimate tokens: ~4 bytes per token for English text.
-	// Transcript files include JSON overhead, so we use a conservative
-	// factor of 5 bytes per token to avoid overestimating.
-	estimatedTokens := float64(info.Size()) / 5.0
-	pct := (estimatedTokens / contextWindowTokens) * 100
-	if pct > 100 {
-		pct = 100
+	defer f.Close()
+
+	var lastPct float64
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		// Quick check before full parse
+		if !contextPctRe.Match(line) {
+			continue
+		}
+		// Extract the percentage from the matching line
+		if m := contextPctRe.FindSubmatch(line); m != nil {
+			if v, err := strconv.ParseFloat(string(m[1]), 64); err == nil {
+				lastPct = v
+			}
+		}
 	}
-	return pct
+	return lastPct
 }
 
 func currentThreshold(pct float64) int {

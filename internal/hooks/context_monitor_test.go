@@ -57,40 +57,45 @@ func TestContextMonitorRegistered(t *testing.T) {
 	}
 }
 
-func TestEstimateContextFromTranscript(t *testing.T) {
+func TestParseContextFromTranscript(t *testing.T) {
 	// Empty path returns 0
-	if got := estimateContextFromTranscript(""); got != 0 {
+	if got := parseContextFromTranscript(""); got != 0 {
 		t.Errorf("empty path: got %v, want 0", got)
 	}
 
 	// Missing file returns 0
-	if got := estimateContextFromTranscript("/nonexistent/file"); got != 0 {
+	if got := parseContextFromTranscript("/nonexistent/file"); got != 0 {
 		t.Errorf("missing file: got %v, want 0", got)
 	}
 
-	// Small file: 5000 bytes → 1000 tokens → 0.5%
 	dir := t.TempDir()
-	smallFile := filepath.Join(dir, "small.jsonl")
-	os.WriteFile(smallFile, make([]byte, 5000), 0o644)
-	got := estimateContextFromTranscript(smallFile)
-	if got < 0.4 || got > 0.6 {
-		t.Errorf("small file: got %.2f%%, want ~0.5%%", got)
+
+	// Transcript with no context reminders returns 0
+	noCtx := filepath.Join(dir, "no-ctx.jsonl")
+	os.WriteFile(noCtx, []byte(`{"type":"user","message":{"role":"user","content":"hello"}}`+"\n"), 0o644)
+	if got := parseContextFromTranscript(noCtx); got != 0 {
+		t.Errorf("no context reminders: got %v, want 0", got)
 	}
 
-	// Large file: 500_000 bytes → 100_000 tokens → 50%
-	largeFile := filepath.Join(dir, "large.jsonl")
-	os.WriteFile(largeFile, make([]byte, 500_000), 0o644)
-	got = estimateContextFromTranscript(largeFile)
-	if got < 49 || got > 51 {
-		t.Errorf("large file: got %.2f%%, want ~50%%", got)
+	// Transcript with context reminder returns parsed value
+	withCtx := filepath.Join(dir, "with-ctx.jsonl")
+	os.WriteFile(withCtx, []byte(
+		`{"type":"user","message":{"role":"user","content":"hello"}}`+"\n"+
+			`{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Context at 42%."}]}}`+"\n",
+	), 0o644)
+	if got := parseContextFromTranscript(withCtx); got != 42 {
+		t.Errorf("single reminder: got %v, want 42", got)
 	}
 
-	// Huge file: capped at 100%
-	hugeFile := filepath.Join(dir, "huge.jsonl")
-	os.WriteFile(hugeFile, make([]byte, 2_000_000), 0o644)
-	got = estimateContextFromTranscript(hugeFile)
-	if got != 100 {
-		t.Errorf("huge file: got %.2f%%, want 100%%", got)
+	// Uses the last context reminder when multiple exist
+	multiCtx := filepath.Join(dir, "multi-ctx.jsonl")
+	os.WriteFile(multiCtx, []byte(
+		`{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Context at 20%."}]}}`+"\n"+
+			`{"type":"user","message":{"role":"user","content":"do more"}}`+"\n"+
+			`{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Context at 61%."}]}}`+"\n",
+	), 0o644)
+	if got := parseContextFromTranscript(multiCtx); got != 61 {
+		t.Errorf("multiple reminders: got %v, want 61", got)
 	}
 }
 
