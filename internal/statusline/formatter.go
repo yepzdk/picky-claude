@@ -22,10 +22,17 @@ type Input struct {
 	SessionID  string  `json:"session_id"`
 	ContextPct float64 `json:"context_pct"`
 	Plan       *Plan   `json:"plan"`
+	Tasks      *Tasks  `json:"tasks"`
 	Worktree   *Wt     `json:"worktree"`
 	Duration   int     `json:"duration_secs"`
 	Messages   int     `json:"messages"`
 	Branch     string  `json:"branch"`
+}
+
+// Tasks represents task/todo completion counts.
+type Tasks struct {
+	Completed int `json:"completed"`
+	Total     int `json:"total"`
 }
 
 // Plan represents plan metadata in the status input.
@@ -55,6 +62,10 @@ func Format(input *Input) string {
 
 	if input.Plan != nil {
 		parts = append(parts, formatPlan(input.Plan))
+	}
+
+	if input.Tasks != nil && input.Tasks.Total > 0 {
+		parts = append(parts, formatTasks(input.Tasks))
 	}
 
 	if ctx := formatContext(input.ContextPct); ctx != "" {
@@ -93,6 +104,10 @@ func formatContext(pct float64) string {
 	default:
 		return text
 	}
+}
+
+func formatTasks(t *Tasks) string {
+	return fmt.Sprintf("T:%d/%d", t.Completed, t.Total)
 }
 
 func formatPlan(p *Plan) string {

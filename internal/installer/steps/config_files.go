@@ -218,6 +218,17 @@ func hooksConfig(binPath string) map[string]any {
 					},
 				},
 			},
+			{
+				"matcher": "TaskCreate|TaskUpdate|TodoWrite",
+				"hooks": []map[string]any{
+					{
+						"type":    "command",
+						"command": binPath + " hook task-tracker",
+						"async":   true,
+						"timeout": 15,
+					},
+				},
+			},
 		},
 		"Stop": []map[string]any{
 			{

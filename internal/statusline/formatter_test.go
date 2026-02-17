@@ -139,6 +139,72 @@ func TestFormat_Full(t *testing.T) {
 	}
 }
 
+func TestFormatTasks(t *testing.T) {
+	got := formatTasks(&Tasks{Completed: 2, Total: 5})
+	want := "T:2/5"
+	if got != want {
+		t.Errorf("formatTasks() = %q, want %q", got, want)
+	}
+}
+
+func TestFormatTasks_AllDone(t *testing.T) {
+	got := formatTasks(&Tasks{Completed: 3, Total: 3})
+	want := "T:3/3"
+	if got != want {
+		t.Errorf("formatTasks() = %q, want %q", got, want)
+	}
+}
+
+func TestFormat_WithTasks(t *testing.T) {
+	input := &Input{
+		Branch: "feat/auth",
+		Tasks:  &Tasks{Completed: 1, Total: 4},
+	}
+	got := Format(input)
+	if !strings.Contains(got, "T:1/4") {
+		t.Errorf("Format() should contain T:1/4, got %q", got)
+	}
+	if !strings.Contains(got, "feat/auth") {
+		t.Errorf("Format() should contain branch, got %q", got)
+	}
+	if !strings.Contains(got, "│") {
+		t.Errorf("Format() should have separator, got %q", got)
+	}
+}
+
+func TestFormat_TasksZeroTotal(t *testing.T) {
+	input := &Input{
+		Branch: "main",
+		Tasks:  &Tasks{Completed: 0, Total: 0},
+	}
+	got := Format(input)
+	if strings.Contains(got, "T:") {
+		t.Errorf("Format() should not show tasks with zero total, got %q", got)
+	}
+}
+
+func TestFormat_FullWithTasks(t *testing.T) {
+	input := &Input{
+		Branch:     "feat/auth",
+		ContextPct: 45,
+		Plan:       &Plan{Name: "auth", Status: "PENDING", Done: 1, Total: 4},
+		Tasks:      &Tasks{Completed: 2, Total: 6},
+	}
+	got := Format(input)
+	if !strings.Contains(got, "feat/auth") {
+		t.Errorf("Format() missing branch, got %q", got)
+	}
+	if !strings.Contains(got, "P:auth 1/4") {
+		t.Errorf("Format() missing plan, got %q", got)
+	}
+	if !strings.Contains(got, "T:2/6") {
+		t.Errorf("Format() missing tasks, got %q", got)
+	}
+	if !strings.Contains(got, "45%") {
+		t.Errorf("Format() missing context, got %q", got)
+	}
+}
+
 func TestFormat_Empty(t *testing.T) {
 	input := &Input{}
 	got := Format(input)

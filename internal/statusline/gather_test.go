@@ -115,6 +115,48 @@ func TestGatherPlan_NoPlans(t *testing.T) {
 	}
 }
 
+func TestGatherTasks(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(
+		filepath.Join(dir, "tasks.json"),
+		[]byte(`{"completed":2,"total":5}`),
+		0o644,
+	)
+
+	got := gatherTasks(dir)
+	if got == nil {
+		t.Fatal("gatherTasks() should return tasks")
+	}
+	if got.Completed != 2 {
+		t.Errorf("tasks.Completed = %d, want 2", got.Completed)
+	}
+	if got.Total != 5 {
+		t.Errorf("tasks.Total = %d, want 5", got.Total)
+	}
+}
+
+func TestGatherTasks_NoFile(t *testing.T) {
+	dir := t.TempDir()
+	got := gatherTasks(dir)
+	if got != nil {
+		t.Errorf("gatherTasks() should return nil when no file, got %+v", got)
+	}
+}
+
+func TestGatherTasks_ZeroTotal(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(
+		filepath.Join(dir, "tasks.json"),
+		[]byte(`{"completed":0,"total":0}`),
+		0o644,
+	)
+
+	got := gatherTasks(dir)
+	if got != nil {
+		t.Errorf("gatherTasks() should return nil for zero total, got %+v", got)
+	}
+}
+
 func TestGatherPlan_VerifiedPlanSkipped(t *testing.T) {
 	dir := t.TempDir()
 	plansDir := filepath.Join(dir, "docs", "plans")

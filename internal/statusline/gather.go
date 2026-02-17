@@ -23,6 +23,9 @@ func Gather(input *Input, workDir, sessionDir string) {
 	if input.Plan == nil {
 		input.Plan = gatherPlan(workDir)
 	}
+	if input.Tasks == nil && sessionDir != "" {
+		input.Tasks = gatherTasks(sessionDir)
+	}
 }
 
 // gatherBranch reads the current git branch from .git/HEAD.
@@ -59,6 +62,22 @@ func gatherContextPct(sessionDir string) float64 {
 		return 0
 	}
 	return d.Percentage
+}
+
+// gatherTasks reads the task summary from the session directory.
+func gatherTasks(sessionDir string) *Tasks {
+	data, err := os.ReadFile(filepath.Join(sessionDir, "tasks.json"))
+	if err != nil {
+		return nil
+	}
+	var t Tasks
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil
+	}
+	if t.Total == 0 {
+		return nil
+	}
+	return &t
 }
 
 var (
