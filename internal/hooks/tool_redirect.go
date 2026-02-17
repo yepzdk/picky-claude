@@ -1,7 +1,5 @@
 package hooks
 
-import "encoding/json"
-
 func init() {
 	Register("tool-redirect", toolRedirectHook)
 }
@@ -37,32 +35,9 @@ func toolRedirectHook(input *Input) error {
 			},
 		})
 
-	case "Task":
-		if input.ToolInput != nil && isExploreAgent(input.ToolInput) {
-			WriteOutput(&Output{
-				HookSpecific: &HookSpecificOuput{
-					HookEventName:            "PreToolUse",
-					PermissionDecision:       "deny",
-					PermissionDecisionReason: "Do not use the Explore agent. Use vexor search for semantic codebase exploration, or Grep/Glob for exact matches.",
-				},
-			})
-			return nil
-		}
-		ExitOK()
-
 	default:
 		ExitOK()
 	}
 
 	return nil
-}
-
-func isExploreAgent(toolInput []byte) bool {
-	var ti struct {
-		SubagentType string `json:"subagent_type"`
-	}
-	if err := json.Unmarshal(toolInput, &ti); err != nil {
-		return false
-	}
-	return ti.SubagentType == "Explore"
 }
