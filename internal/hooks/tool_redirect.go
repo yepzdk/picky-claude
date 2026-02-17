@@ -31,7 +31,7 @@ func toolRedirectHook(input *Input) error {
 			HookSpecific: &HookSpecificOuput{
 				HookEventName:            "PreToolUse",
 				PermissionDecision:       "deny",
-				PermissionDecisionReason: "Do not use built-in plan mode. Use the /spec command instead.",
+				PermissionDecisionReason: "Built-in plan mode is disabled. Do not call EnterPlanMode or ExitPlanMode. Continue working directly without these tools.",
 			},
 		})
 
