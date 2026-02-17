@@ -90,8 +90,31 @@ func TestSpecStopGuard_HighContext(t *testing.T) {
 	planContent := "# Plan\n\nStatus: PENDING\n\n## Tasks\n- [ ] Not done\n"
 	os.WriteFile(filepath.Join(planDir, "2026-01-01-test.md"), []byte(planContent), 0o644)
 
-	// Write high context percentage
+	// Set up a temp home so resolveSessionDir points to our controlled dir
+	tmpHome := t.TempDir()
+	origHome := os.Getenv(config.EnvPrefix + "_HOME")
+	os.Setenv(config.EnvPrefix+"_HOME", tmpHome)
+	defer func() {
+		if origHome == "" {
+			os.Unsetenv(config.EnvPrefix + "_HOME")
+		} else {
+			os.Setenv(config.EnvPrefix+"_HOME", origHome)
+		}
+	}()
+
+	// Set session ID so resolveSessionDir returns a known path
 	sessionID := "test-stop-highctx"
+	origSID := os.Getenv(config.EnvPrefix + "_SESSION_ID")
+	os.Setenv(config.EnvPrefix+"_SESSION_ID", sessionID)
+	defer func() {
+		if origSID == "" {
+			os.Unsetenv(config.EnvPrefix + "_SESSION_ID")
+		} else {
+			os.Setenv(config.EnvPrefix+"_SESSION_ID", origSID)
+		}
+	}()
+
+	// Write high context percentage to the resolved session dir
 	sessionDir := config.SessionDir(sessionID)
 	os.MkdirAll(sessionDir, 0o755)
 	os.WriteFile(filepath.Join(sessionDir, "context-pct.json"), []byte(`{"percentage": 92.0}`), 0o644)

@@ -31,7 +31,7 @@ func specStopGuardHook(input *Input) error {
 // Extracted for testability (avoids os.Exit calls in tests).
 func specStopGuardCheck(input *Input) *string {
 	// At high context, always allow stop for handoff
-	if isHighContext(input.SessionID) {
+	if isHighContext() {
 		return nil
 	}
 
@@ -60,11 +60,8 @@ func specStopGuardCheck(input *Input) *string {
 }
 
 // isHighContext returns true if context usage is at 90% or above.
-func isHighContext(sessionID string) bool {
-	if sessionID == "" {
-		sessionID = "default"
-	}
-	pct := readContextPercentage(sessionID)
+func isHighContext() bool {
+	pct := readContextPct(resolveSessionDir())
 	return pct >= 90
 }
 
@@ -108,6 +105,5 @@ func extractPlanStatus(content string) string {
 	return ""
 }
 
-// readContextPercentage is declared in context_monitor.go and reused here.
+// readContextPct is declared in context_monitor.go and reused here.
 // No redeclaration needed — the function is package-level in the same package.
-var _ = readContextPercentage // ensure it's available (compile-time check)

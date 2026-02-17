@@ -23,9 +23,9 @@ func setupTaskTrackerTest(t *testing.T) (string, func()) {
 	}
 }
 
-func readSummary(t *testing.T, sessionID string) taskSummary {
+func readSummary(t *testing.T, sessionDir string) taskSummary {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(config.SessionDir(sessionID), "tasks.json"))
+	data, err := os.ReadFile(filepath.Join(sessionDir, "tasks.json"))
 	if err != nil {
 		t.Fatalf("reading tasks.json: %v", err)
 	}
@@ -113,38 +113,35 @@ func TestCountFromTodoWrite(t *testing.T) {
 }
 
 func TestLoadSaveTaskSummary(t *testing.T) {
-	_, cleanup := setupTaskTrackerTest(t)
-	defer cleanup()
+	sessionDir := t.TempDir()
 
 	// Load from nonexistent file returns zero
-	got := loadTaskSummary("test-session")
+	got := loadTaskSummary(sessionDir)
 	if got.Completed != 0 || got.Total != 0 {
 		t.Errorf("expected zero summary, got %+v", got)
 	}
 
 	// Save and reload
 	s := &taskSummary{Completed: 3, Total: 7}
-	saveTaskSummary("test-session", s)
+	saveTaskSummary(sessionDir, s)
 
-	got = loadTaskSummary("test-session")
+	got = loadTaskSummary(sessionDir)
 	if got.Completed != 3 || got.Total != 7 {
 		t.Errorf("expected {3,7}, got %+v", got)
 	}
 }
 
 func TestTaskTrackerTaskCreate(t *testing.T) {
-	_, cleanup := setupTaskTrackerTest(t)
-	defer cleanup()
+	sessionDir := t.TempDir()
 
 	// Simulate three TaskCreate calls.
-	// We test the logic directly since the hook calls os.Exit.
 	for i := 0; i < 3; i++ {
-		summary := loadTaskSummary("tracker-test")
+		summary := loadTaskSummary(sessionDir)
 		summary.Total++
-		saveTaskSummary("tracker-test", &summary)
+		saveTaskSummary(sessionDir, &summary)
 	}
 
-	got := readSummary(t, "tracker-test")
+	got := readSummary(t, sessionDir)
 	if got.Total != 3 {
 		t.Errorf("total = %d, want 3", got.Total)
 	}
@@ -154,22 +151,21 @@ func TestTaskTrackerTaskCreate(t *testing.T) {
 }
 
 func TestTaskTrackerTaskUpdateCompleted(t *testing.T) {
-	_, cleanup := setupTaskTrackerTest(t)
-	defer cleanup()
+	sessionDir := t.TempDir()
 
 	// Set up initial state: 3 tasks, 0 completed
-	saveTaskSummary("tracker-test", &taskSummary{Total: 3})
+	saveTaskSummary(sessionDir, &taskSummary{Total: 3})
 
 	// Simulate TaskUpdate with status=completed
-	summary := loadTaskSummary("tracker-test")
+	summary := loadTaskSummary(sessionDir)
 	var tu taskUpdateInput
 	json.Unmarshal([]byte(`{"status":"completed"}`), &tu)
 	if tu.Status == "completed" {
 		summary.Completed++
 	}
-	saveTaskSummary("tracker-test", &summary)
+	saveTaskSummary(sessionDir, &summary)
 
-	got := readSummary(t, "tracker-test")
+	got := readSummary(t, sessionDir)
 	if got.Total != 3 {
 		t.Errorf("total = %d, want 3", got.Total)
 	}
@@ -179,22 +175,21 @@ func TestTaskTrackerTaskUpdateCompleted(t *testing.T) {
 }
 
 func TestTaskTrackerTaskUpdateDeleted(t *testing.T) {
-	_, cleanup := setupTaskTrackerTest(t)
-	defer cleanup()
+	sessionDir := t.TempDir()
 
 	// Set up initial state: 3 tasks, 1 completed
-	saveTaskSummary("tracker-test", &taskSummary{Completed: 1, Total: 3})
+	saveTaskSummary(sessionDir, &taskSummary{Completed: 1, Total: 3})
 
 	// Simulate TaskUpdate with status=deleted
-	summary := loadTaskSummary("tracker-test")
+	summary := loadTaskSummary(sessionDir)
 	var tu taskUpdateInput
 	json.Unmarshal([]byte(`{"status":"deleted"}`), &tu)
 	if tu.Status == "deleted" && summary.Total > 0 {
 		summary.Total--
 	}
-	saveTaskSummary("tracker-test", &summary)
+	saveTaskSummary(sessionDir, &summary)
 
-	got := readSummary(t, "tracker-test")
+	got := readSummary(t, sessionDir)
 	if got.Total != 2 {
 		t.Errorf("total = %d, want 2", got.Total)
 	}

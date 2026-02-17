@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/jesperpedersen/picky-claude/internal/config"
 )
 
 func init() {
@@ -26,7 +24,7 @@ func tddEnforcerHook(input *Input) error {
 	// Detect if this is a test file
 	isTest := isTestFile(filePath)
 
-	stateFile := tddStateFile(input.SessionID)
+	stateFile := tddStateFile()
 	state := loadTDDState(stateFile)
 
 	if isTest {
@@ -92,11 +90,8 @@ type tddState struct {
 	Warned      bool `json:"warned"`
 }
 
-func tddStateFile(sessionID string) string {
-	if sessionID == "" {
-		sessionID = "default"
-	}
-	return filepath.Join(config.SessionDir(sessionID), "tdd-state.json")
+func tddStateFile() string {
+	return filepath.Join(resolveSessionDir(), "tdd-state.json")
 }
 
 func loadTDDState(path string) *tddState {
