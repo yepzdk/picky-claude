@@ -63,8 +63,8 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Port != DefaultPort {
 		t.Errorf("Port = %d, want %d", cfg.Port, DefaultPort)
 	}
-	if cfg.LogLevel != slog.LevelInfo {
-		t.Errorf("LogLevel = %v, want %v", cfg.LogLevel, slog.LevelInfo)
+	if cfg.LogLevel != LevelOff {
+		t.Errorf("LogLevel = %v, want %v", cfg.LogLevel, LevelOff)
 	}
 }
 
@@ -98,8 +98,8 @@ func TestLoad_LogLevels(t *testing.T) {
 		{"warning", slog.LevelWarn},
 		{"error", slog.LevelError},
 		{"info", slog.LevelInfo},
-		{"", slog.LevelInfo},
-		{"unknown", slog.LevelInfo},
+		{"", LevelOff},
+		{"unknown", LevelOff},
 	}
 	for _, tt := range tests {
 		t.Run(tt.env, func(t *testing.T) {

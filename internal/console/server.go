@@ -199,7 +199,7 @@ func (s *Server) Stop() error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	s.logger.Info("console server stopping")
+	s.logger.Debug("console server stopping")
 	if err := s.http.Shutdown(ctx); err != nil {
 		s.db.Close()
 		return err

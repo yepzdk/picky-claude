@@ -8,7 +8,8 @@ const (
 	DefaultPort = 41777
 
 	// DefaultLogLevel is the default structured log level.
-	DefaultLogLevel = "info"
+	// "off" disables all log output; users must set PICKY_LOG_LEVEL explicitly to see logs.
+	DefaultLogLevel = "off"
 )
 
 // Version returns the build version string.

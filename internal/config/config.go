@@ -33,15 +33,20 @@ func Load() (*Config, error) {
 	}, nil
 }
 
+// LevelOff is a log level above LevelError that suppresses all log output.
+const LevelOff = slog.Level(16)
+
 func parseLogLevel(s string) slog.Level {
 	switch strings.ToLower(s) {
 	case "debug":
 		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
 	case "warn", "warning":
 		return slog.LevelWarn
 	case "error":
 		return slog.LevelError
 	default:
-		return slog.LevelInfo
+		return LevelOff
 	}
 }

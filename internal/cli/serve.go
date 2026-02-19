@@ -42,7 +42,7 @@ var serveCmd = &cobra.Command{
 		case err := <-errCh:
 			return err
 		case <-stop:
-			logger.Info("shutting down console server")
+			logger.Debug("shutting down console server")
 			return srv.Stop()
 		}
 	},
